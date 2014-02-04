@@ -21,7 +21,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
-import java.util.Map;
 
 import com.github.mustachejava.DefaultMustacheFactory;
 import com.github.mustachejava.Mustache;
@@ -32,6 +31,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.yaml.snakeyaml.Yaml;
 
 /**
  * The entry class for the maven plugin
@@ -39,6 +39,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 @Mojo(name = "mustache")
 public class MustacheMojo extends AbstractMojo {
 
+    public static final String FILE_PREFIX = "file:";
     @Parameter(required = true)
     private String outputPath;
 
@@ -46,10 +47,44 @@ public class MustacheMojo extends AbstractMojo {
     private File template;
 
     @Parameter(required = true)
-    private Map context;
+    private String context;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
+        Mustache mustache = createTemplate();
+
+        try (Writer writer = new FileWriter(outputPath)) {
+            Yaml yaml = new Yaml();
+            Object parsedContext = createContext(yaml);
+            getLog().info("Context = " + parsedContext);
+            mustache.execute(writer, parsedContext);
+        } catch (IOException e) {
+            throw new MojoFailureException(e, "Cannot open output file", "Cannot open output file");
+        } catch (MustacheException e) {
+            throw new MojoFailureException(e, "Cannot process template", "Cannot process template");
+        }
+    }
+
+    private Object createContext(final Yaml yaml) throws MojoFailureException {
+        if (context.startsWith("---\n")) {
+            return yaml.load(context);
+        }
+
+        String trimmedContext = context.trim();
+        if (trimmedContext.startsWith(FILE_PREFIX)) {
+            String filename = trimmedContext.substring(FILE_PREFIX.length());
+            try (FileReader reader = new FileReader(filename)) {
+                return yaml.load(reader);
+            } catch (IOException e) {
+                throw new MojoFailureException(e, "Cannot load yaml from file", "Cannot load yaml from file");
+            }
+        }
+
+        throw new MojoFailureException("Cannot load context. Either pass a filename in the form 'file:[filename]' or " +
+                "include a complete yaml document, prefied with '---\\n");
+    }
+
+    private Mustache createTemplate() throws MojoFailureException {
         DefaultMustacheFactory mf = new DefaultMustacheFactory();
         Mustache mustache;
         try (Reader reader = new FileReader(template)) {
@@ -57,14 +92,7 @@ public class MustacheMojo extends AbstractMojo {
         } catch (IOException e) {
             throw new MojoFailureException(e, "Cannot open template", "Cannot open template");
         }
-
-        try (Writer writer = new FileWriter(outputPath)) {
-            mustache.execute(writer, context);
-        } catch (IOException e) {
-            throw new MojoFailureException(e, "Cannot open output file", "Cannot open output file");
-        } catch (MustacheException e) {
-            throw new MojoFailureException(e, "Cannot process template", "Cannot process template");
-        }
+        return mustache;
     }
 
     public void setOutputPath(final String outputPath) {
@@ -75,7 +103,7 @@ public class MustacheMojo extends AbstractMojo {
         this.template = template;
     }
 
-    public void setContext(final Map context) {
+    public void setContext(final String context) {
         this.context = context;
     }
 }

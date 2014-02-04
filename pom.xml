@@ -29,6 +29,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <mustache.java.version>0.8.13</mustache.java.version>
+        <snake.yaml.version>1.13</snake.yaml.version>
     </properties>
 
     <dependencies>
@@ -58,6 +59,11 @@
             <groupId>com.github.spullara.mustache.java</groupId>
             <artifactId>compiler</artifactId>
             <version>${mustache.java.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <version>${snake.yaml.version}</version>
         </dependency>
     </dependencies>
 

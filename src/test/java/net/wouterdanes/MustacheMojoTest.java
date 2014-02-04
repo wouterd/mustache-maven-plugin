@@ -17,35 +17,81 @@ package net.wouterdanes;
 
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.HashMap;
 
+import org.apache.maven.plugin.MojoFailureException;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
 public class MustacheMojoTest {
 
-    @Test
-    public void testThatTemplateGetsExecuted() throws Exception {
-        MustacheMojo mojo = new MustacheMojo();
-        HashMap<Object, Object> context = new HashMap<>();
-        context.put("text", "Hello test");
-        mojo.setContext(context);
+    private MustacheMojo mojo;
+    private String outputPath;
+
+    @Before
+    public void setUp() throws Exception {
+        mojo = new MustacheMojo();
 
         File tempFile = File.createTempFile("mustache", "output");
         tempFile.deleteOnExit();
-        String outputPath = tempFile.getPath();
+        outputPath = tempFile.getPath();
         mojo.setOutputPath(outputPath);
 
-        ClassLoader classLoader = getClass().getClassLoader();
-        URL resource = classLoader.getResource("test-template.mustache");
-        File template = new File(resource.toURI());
-
+        String filename = "test-template.mustache";
+        File template = getFileFromResource(filename);
         mojo.setTemplate(template);
+    }
+
+    @Test
+    public void testThatTemplateGetsExecuted() throws Exception {
+        String context = "---\n{text : \"Hello test\"}\n";
+        mojo.setContext(context);
 
         mojo.execute();
 
+        checkOutput();
+    }
+
+    @Test
+    public void testThatTemplateGetsExecutedWhenItsAFile() throws Exception {
+        File contextFile = getFileFromResource("test-context.yaml");
+        String contextFilePath = contextFile.getPath();
+        mojo.setContext("file:" + contextFilePath);
+
+        mojo.execute();
+
+        checkOutput();
+    }
+
+    @Test(expected = MojoFailureException.class)
+    public void testThatNoValidContextCausesException() throws Exception {
+        mojo.setContext("{text : 'Hello test'}");
+
+        mojo.execute();
+
+        checkOutput();
+    }
+
+    @Test(expected = MojoFailureException.class)
+    public void testThatUnknownFileNameCausesException() throws Exception {
+        mojo.setContext("file:/some/where/over/therainbox/something.yaml");
+
+        mojo.execute();
+
+        checkOutput();
+    }
+
+    private File getFileFromResource(final String filename) throws URISyntaxException {
+        ClassLoader classLoader = getClass().getClassLoader();
+        URL resource = classLoader.getResource(filename);
+        return new File(resource.toURI());
+    }
+
+    private void checkOutput() throws IOException {
         File file = new File(outputPath);
         final char[] fileContents;
         try (FileReader fileReader = new FileReader(file)) {
