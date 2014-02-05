@@ -24,7 +24,39 @@
 
     <name>mustache-maven-plugin Maven Plugin</name>
 
+    <description>
+        A maven plugin to run mustache templates in Maven builds. It takes a context in YAML format
+        and a template in mustache format and generates one or more files.
+    </description>
+
     <url>https://github.com/wouterd/mustache-maven-plugin</url>
+
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>A business-friendly OSS license</comments>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>https://github.com/wouterd/mustache-maven-plugin</url>
+        <connection>scm:git:https://github.com/wouterd/mustache-maven-plugin.git</connection>
+    </scm>
+
+    <developers>
+        <developer>
+            <url>http://www.wouterdanes.net</url>
+            <name>Wouter Danes</name>
+            <email>wouter.danes@gmail.com</email>
+            <id>wouterd</id>
+            <timezone>CET</timezone>
+            <roles>
+                <role>Developer</role>
+            </roles>
+        </developer>
+    </developers>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
