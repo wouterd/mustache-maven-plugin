@@ -8,7 +8,7 @@ This maven plugin allows you to define one or more contexts in YAML and push tho
 
 # Usage
 Include the following code snippet in your pom as a plugin:
-The <configuration> element is the most interesting, here you can specify a global context and a sequence of templates. These templates are executed in order of appearance. If you want, you can use files generated in a next step. Each template has three fields: templateFile, outputPath and context. Context is optional and specifies a YAML formated context. templateFile points to the mustache template to render. outputPath tells the plugin where to write the generated output.
+The &lt;configuration&gt; element is the most interesting, here you can specify a global context and a sequence of templates. These templates are executed in order of appearance. If you want, you can use files generated in a next step. Each template has three fields: templateFile, outputPath and context. Context is optional and specifies a YAML formated context. templateFile points to the mustache template to render. outputPath tells the plugin where to write the generated output.
 The context element can either contain valid YAML, starting with a line containing just:
 
     ---
