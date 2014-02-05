@@ -21,6 +21,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
+import java.util.List;
 
 import com.github.mustachejava.DefaultMustacheFactory;
 import com.github.mustachejava.Mustache;
@@ -40,24 +41,38 @@ import org.yaml.snakeyaml.Yaml;
 public class MustacheMojo extends AbstractMojo {
 
     public static final String FILE_PREFIX = "file:";
-    @Parameter(required = true)
-    private String outputPath;
 
     @Parameter(required = true)
-    private File template;
+    private List<TemplateRunConfiguration> templates;
 
-    @Parameter(required = true)
+    @Parameter
     private String context;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        Mustache mustache = createTemplate();
 
-        try (Writer writer = new FileWriter(outputPath)) {
-            Yaml yaml = new Yaml();
-            Object parsedContext = createContext(yaml);
-            getLog().info("Context = " + parsedContext);
-            mustache.execute(writer, parsedContext);
+        Object parsedContext = createContext(context);
+
+        for (TemplateRunConfiguration configuration : templates) {
+            getLog().info("Generating '" + configuration.getOutputPath() + "'");
+            runTemplateConfiguration(parsedContext, configuration);
+        }
+
+    }
+
+    private void runTemplateConfiguration(Object globalContext, TemplateRunConfiguration configuration)
+            throws MojoFailureException {
+        Object templateContext = createContext(configuration.getContext());
+        if (templateContext == null) {
+            if (globalContext == null) {
+                throw new MojoFailureException("Template has no defined context and plugin context is also empty");
+            }
+            templateContext = globalContext;
+        }
+
+        Mustache mustache = createTemplate(configuration.getTemplateFile());
+        try (Writer writer = new FileWriter(configuration.getOutputPath())) {
+            mustache.execute(writer, templateContext);
         } catch (IOException e) {
             throw new MojoFailureException(e, "Cannot open output file", "Cannot open output file");
         } catch (MustacheException e) {
@@ -65,12 +80,18 @@ public class MustacheMojo extends AbstractMojo {
         }
     }
 
-    private Object createContext(final Yaml yaml) throws MojoFailureException {
-        if (context.startsWith("---\n")) {
-            return yaml.load(context);
+    private static Object createContext(String contextConfiguration) throws MojoFailureException {
+        if (contextConfiguration == null) {
+            return null;
         }
 
-        String trimmedContext = context.trim();
+        Yaml yaml = new Yaml();
+
+        if (contextConfiguration.startsWith("---\n")) {
+            return yaml.load(contextConfiguration);
+        }
+
+        String trimmedContext = contextConfiguration.trim();
         if (trimmedContext.startsWith(FILE_PREFIX)) {
             String filename = trimmedContext.substring(FILE_PREFIX.length());
             try (FileReader reader = new FileReader(filename)) {
@@ -84,7 +105,7 @@ public class MustacheMojo extends AbstractMojo {
                 "include a complete yaml document, prefied with '---\\n");
     }
 
-    private Mustache createTemplate() throws MojoFailureException {
+    private static Mustache createTemplate(File template) throws MojoFailureException {
         DefaultMustacheFactory mf = new DefaultMustacheFactory();
         Mustache mustache;
         try (Reader reader = new FileReader(template)) {
@@ -95,15 +116,11 @@ public class MustacheMojo extends AbstractMojo {
         return mustache;
     }
 
-    public void setOutputPath(final String outputPath) {
-        this.outputPath = outputPath;
-    }
-
-    public void setTemplate(final File template) {
-        this.template = template;
-    }
-
-    public void setContext(final String context) {
+    public void setContext(String context) {
         this.context = context;
+    }
+
+    public void setTemplates(List<TemplateRunConfiguration> templates) {
+        this.templates = templates;
     }
 }

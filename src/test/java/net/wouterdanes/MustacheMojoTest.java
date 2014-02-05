@@ -20,6 +20,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.maven.plugin.MojoFailureException;
 import org.junit.Before;
@@ -29,42 +31,41 @@ import static org.junit.Assert.assertEquals;
 
 public class MustacheMojoTest {
 
+    public static final String TEST_TEMPLATE = "test-template.mustache";
+
     private MustacheMojo mojo;
-    private String outputPath;
 
     @Before
     public void setUp() throws Exception {
         mojo = new MustacheMojo();
-
-        File tempFile = File.createTempFile("mustache", "output");
-        tempFile.deleteOnExit();
-        outputPath = tempFile.getPath();
-        mojo.setOutputPath(outputPath);
-
-        String filename = "test-template.mustache";
-        File template = getFileFromResource(filename);
-        mojo.setTemplate(template);
     }
 
     @Test
     public void testThatTemplateGetsExecuted() throws Exception {
         String context = "---\n{text : \"Hello test\"}\n";
-        mojo.setContext(context);
+
+        String outputPath = createTempFile();
+
+        mojo.setTemplates(createTemplateRunConfigurations(context, outputPath));
 
         mojo.execute();
 
-        checkOutput();
+        checkOutput(outputPath);
     }
 
     @Test
     public void testThatTemplateGetsExecutedWhenItsAFile() throws Exception {
         File contextFile = getFileFromResource("test-context.yaml");
         String contextFilePath = contextFile.getPath();
-        mojo.setContext("file:" + contextFilePath);
+        String context = "file:" + contextFilePath;
+
+        String outputPath = createTempFile();
+
+        mojo.setTemplates(createTemplateRunConfigurations(context, outputPath));
 
         mojo.execute();
 
-        checkOutput();
+        checkOutput(outputPath);
     }
 
     @Test(expected = MojoFailureException.class)
@@ -72,8 +73,6 @@ public class MustacheMojoTest {
         mojo.setContext("{text : 'Hello test'}");
 
         mojo.execute();
-
-        checkOutput();
     }
 
     @Test(expected = MojoFailureException.class)
@@ -81,8 +80,72 @@ public class MustacheMojoTest {
         mojo.setContext("file:/some/where/over/therainbox/something.yaml");
 
         mojo.execute();
+    }
 
-        checkOutput();
+    @Test
+    public void testThatLocalContextOverridesGlobalContext() throws Exception {
+        mojo.setContext("---\ntext: This should not be outputted");
+
+        String outputPath = createTempFile();
+
+        mojo.setTemplates(createTemplateRunConfigurations("---\ntext: Hello test", outputPath));
+
+        mojo.execute();
+
+        checkOutput(outputPath);
+    }
+
+    @Test
+    public void testThatGlobalContextGetsInheritedWhenNoLocalContext() throws Exception {
+        mojo.setContext("---\ntext: Hello test");
+
+        String outputPath = createTempFile();
+
+        mojo.setTemplates(createTemplateRunConfigurations(null, outputPath));
+
+        mojo.execute();
+
+        checkOutput(outputPath);
+    }
+
+    @Test
+    public void testThatTwoTemplatesGetExecutedWhenConfigured() throws Exception {
+        String firstOutput = createTempFile();
+        String secondOutput = createTempFile();
+
+        mojo.setContext("---\ntext: Hello test");
+
+        List<TemplateRunConfiguration> runConfigurations = new ArrayList<>(2);
+        runConfigurations.add(createTemplateConfiguration(TEST_TEMPLATE, firstOutput, null));
+        runConfigurations.add(createTemplateConfiguration(TEST_TEMPLATE, secondOutput, null));
+
+        mojo.setTemplates(runConfigurations);
+
+        mojo.execute();
+
+        checkOutput(firstOutput);
+        checkOutput(secondOutput);
+    }
+
+    private static String createTempFile() throws IOException {
+        File tempFile = File.createTempFile("mustache", "output");
+        tempFile.deleteOnExit();
+        return tempFile.getPath();
+    }
+
+    private List<TemplateRunConfiguration> createTemplateRunConfigurations(final String context,
+                                                                           final String outputPath)
+            throws URISyntaxException {
+        TemplateRunConfiguration configuration = createTemplateConfiguration(TEST_TEMPLATE, outputPath, context);
+        List<TemplateRunConfiguration> templateRunConfigurations = new ArrayList<>();
+        templateRunConfigurations.add(configuration);
+        return templateRunConfigurations;
+    }
+
+    private TemplateRunConfiguration createTemplateConfiguration(String templateFilename, String outputPath,
+                                                                 String context) throws URISyntaxException {
+        File template = getFileFromResource(templateFilename);
+        return new TemplateRunConfiguration(outputPath, template, context);
     }
 
     private File getFileFromResource(final String filename) throws URISyntaxException {
@@ -91,7 +154,7 @@ public class MustacheMojoTest {
         return new File(resource.toURI());
     }
 
-    private void checkOutput() throws IOException {
+    private void checkOutput(String outputPath) throws IOException {
         File file = new File(outputPath);
         final char[] fileContents;
         try (FileReader fileReader = new FileReader(file)) {
