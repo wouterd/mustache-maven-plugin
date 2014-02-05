@@ -50,18 +50,16 @@ public class MustacheMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-
         Object parsedContext = createContext(context);
 
         for (TemplateRunConfiguration configuration : templates) {
             getLog().info("Generating '" + configuration.getOutputPath() + "'");
             runTemplateConfiguration(parsedContext, configuration);
         }
-
     }
 
     private void runTemplateConfiguration(Object globalContext, TemplateRunConfiguration configuration)
-            throws MojoFailureException {
+            throws MojoFailureException, MojoExecutionException {
         Object templateContext = createContext(configuration.getContext());
         if (templateContext == null) {
             if (globalContext == null) {
@@ -71,12 +69,15 @@ public class MustacheMojo extends AbstractMojo {
         }
 
         Mustache mustache = createTemplate(configuration.getTemplateFile());
-        try (Writer writer = new FileWriter(configuration.getOutputPath())) {
+        File outputFile = new File(configuration.getOutputPath());
+        File parent = outputFile.getParentFile();
+        parent.mkdirs();
+        try (Writer writer = new FileWriter(outputFile)) {
             mustache.execute(writer, templateContext);
         } catch (IOException e) {
-            throw new MojoFailureException(e, "Cannot open output file", "Cannot open output file");
+            throw new MojoFailureException(e, "Cannot open output file", "Cannot open output file: " + e.getMessage());
         } catch (MustacheException e) {
-            throw new MojoFailureException(e, "Cannot process template", "Cannot process template");
+            throw new MojoFailureException(e, "Cannot process template", "Cannot process template: " + e.getMessage());
         }
     }
 
