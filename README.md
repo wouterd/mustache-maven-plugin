@@ -18,7 +18,7 @@ Or it can contain file:[filename], where filename points to a file with valid YA
     <plugin>
         <groupId>net.wouterdanes</groupId>
         <artifactId>mustache-maven-plugin</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>1.0</version>
         <executions>
             <execution>
                 <id>run-mustache-template</id>
