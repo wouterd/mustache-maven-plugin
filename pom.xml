@@ -49,7 +49,7 @@
   <scm>
     <url>https://github.com/wouterd/mustache-maven-plugin</url>
     <connection>scm:git:git@github.com:wouterd/mustache-maven-plugin.git</connection>
-    <developerConnection>git@github.com:wouterd/mustache-maven-plugin.git</developerConnection>
+    <developerConnection>scm:git:git@github.com:wouterd/mustache-maven-plugin.git</developerConnection>
   </scm>
 
   <developers>
