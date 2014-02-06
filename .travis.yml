@@ -1,2 +1,9 @@
 language: java
 script: mvn clean verify
+after_success:
+ - ./generate-maven-settings.sh
+ - mvn deploy -s ./target/maven-settings.xml
+env:
+  global:
+  - secure: OBoYs1mhepetAogQ0SXhrp6HCgZXyUe66Mz0H8i2BcWSteIyrWfg3LQLbdL9I1doGOxdL3F8+b5wnz0X7hYEuUM1NCuflK0Ya7ECObKeFpl0SbhAurL7LWKY02Vu3tSfNStx4qMS9PvkOraQMj+QSve7qODJHmpkiYgekI+g0l0=
+  - secure: KIi5DQj24W0wpgAPE3qm30z5ffO7A0wMhQMUAwCNpVHrfhlMSCtE/lBhfSFr3ND0rqcKslRQl9ULbnZOByXVgLS/bLtG+jTfjj6eQjjRe8NsVPZybXMAoNCRqxeTJ2AsjgOEmolHDmmD3jgHUN4KHcUEwJjyy8spQP0A+jDB+IY=
