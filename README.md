@@ -1,5 +1,6 @@
 mustache-maven-plugin
 =====================
+[![Build Status](https://travis-ci.org/wouterd/mustache-maven-plugin.png?branch=master)](https://travis-ci.org/wouterd/mustache-maven-plugin)
 
 A maven plugin to process mustache templates in a maven build
 
