@@ -9,6 +9,13 @@ This maven plugin allows you to define one or more contexts in YAML and push tho
 during your maven build. I've been using this to make my application configuration files (context.xml f.ex) generic and 
 generate these during the deploys to various environments. (Using ruby-mustache)
 
+# About this document
+As the documentation evolves with different plugin versions, be sure that before you read on that:
+- You check that you are watching the right tag
+- Switch to the right tag to read the right documentation.
+
+The README of the master branch will cover the current development version and not cover the current released version.
+
 # Usage
 Include the following code snippet in your pom as a plugin:
 The &lt;configuration&gt; element is the most interesting, here you can specify a global context and a sequence of 
