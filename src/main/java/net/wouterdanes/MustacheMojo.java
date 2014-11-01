@@ -16,23 +16,27 @@
 package net.wouterdanes;
 
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
+import java.nio.charset.Charset;
 import java.util.List;
-
-import com.github.mustachejava.DefaultMustacheFactory;
-import com.github.mustachejava.Mustache;
-import com.github.mustachejava.MustacheException;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.codehaus.plexus.util.StringUtils;
 import org.yaml.snakeyaml.Yaml;
+
+import com.github.mustachejava.DefaultMustacheFactory;
+import com.github.mustachejava.Mustache;
+import com.github.mustachejava.MustacheException;
 
 /**
  * The entry class for the maven plugin
@@ -47,20 +51,31 @@ public class MustacheMojo extends AbstractMojo {
 
     @Parameter
     private String context;
+    
+    @Parameter(defaultValue ="${project.build.sourceEncoding}")
+    private String encoding;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        Object parsedContext = createContext(context);
+    	Charset charset;
+    	if (StringUtils.isEmpty(encoding)) {
+            getLog().warn("File encoding has not been set, using platform encoding " + Charset.defaultCharset()
+                + ", i.e. build is platform dependent!" );
+            charset = Charset.defaultCharset();
+    	} else {
+    		charset = Charset.forName(encoding);
+    	}
+        Object parsedContext = createContext(context, charset);
 
         for (TemplateRunConfiguration configuration : templates) {
             getLog().info("Generating '" + configuration.getOutputPath() + "'");
-            runTemplateConfiguration(parsedContext, configuration);
+            runTemplateConfiguration(parsedContext, configuration, charset);
         }
     }
 
-    private void runTemplateConfiguration(Object globalContext, TemplateRunConfiguration configuration)
+    private void runTemplateConfiguration(Object globalContext, TemplateRunConfiguration configuration, Charset charset)
             throws MojoFailureException, MojoExecutionException {
-        Object templateContext = createContext(configuration.getContext());
+        Object templateContext = createContext(configuration.getContext(), charset);
         if (templateContext == null) {
             if (globalContext == null) {
                 throw new MojoFailureException("Template has no defined context and plugin context is also empty");
@@ -68,11 +83,11 @@ public class MustacheMojo extends AbstractMojo {
             templateContext = globalContext;
         }
 
-        Mustache mustache = createTemplate(configuration.getTemplateFile());
+        Mustache mustache = createTemplate(configuration.getTemplateFile(), charset);
         File outputFile = new File(configuration.getOutputPath());
         File parent = outputFile.getParentFile();
         parent.mkdirs();
-        try (Writer writer = new FileWriter(outputFile)) {
+        try (Writer writer = new OutputStreamWriter(new FileOutputStream(outputFile), charset)) {
             mustache.execute(writer, templateContext);
         } catch (IOException e) {
             throw new MojoFailureException(e, "Cannot open output file", "Cannot open output file: " + e.getMessage());
@@ -81,7 +96,7 @@ public class MustacheMojo extends AbstractMojo {
         }
     }
 
-    private static Object createContext(String contextConfiguration) throws MojoFailureException {
+    private static Object createContext(String contextConfiguration, Charset charset) throws MojoFailureException {
         if (contextConfiguration == null) {
             return null;
         }
@@ -95,7 +110,7 @@ public class MustacheMojo extends AbstractMojo {
         String trimmedContext = contextConfiguration.trim();
         if (trimmedContext.startsWith(FILE_PREFIX)) {
             String filename = trimmedContext.substring(FILE_PREFIX.length());
-            try (FileReader reader = new FileReader(filename)) {
+            try (Reader reader = new InputStreamReader(new FileInputStream(filename), charset)) {
                 return yaml.load(reader);
             } catch (IOException e) {
                 throw new MojoFailureException(e, "Cannot load yaml from file", "Cannot load yaml from file");
@@ -106,10 +121,10 @@ public class MustacheMojo extends AbstractMojo {
                 "include a complete yaml document, prefied with '---\\n");
     }
 
-    private static Mustache createTemplate(File template) throws MojoFailureException {
+    private static Mustache createTemplate(File template, Charset charset) throws MojoFailureException {
         DefaultMustacheFactory mf = new DefaultMustacheFactory();
         Mustache mustache;
-        try (Reader reader = new FileReader(template)) {
+        try (Reader reader = new InputStreamReader(new FileInputStream(template), charset)) {
             mustache = mf.compile(reader, "template");
         } catch (IOException e) {
             throw new MojoFailureException(e, "Cannot open template", "Cannot open template");
