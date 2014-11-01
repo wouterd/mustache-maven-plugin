@@ -24,7 +24,7 @@
 
   <groupId>net.wouterdanes</groupId>
   <artifactId>mustache-maven-plugin</artifactId>
-  <version>1.1</version>
+  <version>1.2-SNAPSHOT</version>
   <packaging>maven-plugin</packaging>
 
   <name>mustache-maven-plugin Maven Plugin</name>
