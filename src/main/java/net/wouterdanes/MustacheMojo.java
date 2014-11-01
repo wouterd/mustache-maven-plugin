@@ -15,17 +15,9 @@
  */
 package net.wouterdanes;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.Reader;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.util.List;
-
+import com.github.mustachejava.DefaultMustacheFactory;
+import com.github.mustachejava.Mustache;
+import com.github.mustachejava.MustacheException;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -34,9 +26,9 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.codehaus.plexus.util.StringUtils;
 import org.yaml.snakeyaml.Yaml;
 
-import com.github.mustachejava.DefaultMustacheFactory;
-import com.github.mustachejava.Mustache;
-import com.github.mustachejava.MustacheException;
+import java.io.*;
+import java.nio.charset.Charset;
+import java.util.List;
 
 /**
  * The entry class for the maven plugin
@@ -51,20 +43,20 @@ public class MustacheMojo extends AbstractMojo {
 
     @Parameter
     private String context;
-    
-    @Parameter(defaultValue ="${project.build.sourceEncoding}")
+
+    @Parameter(defaultValue = "${project.build.sourceEncoding}")
     private String encoding;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-    	Charset charset;
-    	if (StringUtils.isEmpty(encoding)) {
+        Charset charset;
+        if (StringUtils.isEmpty(encoding)) {
             getLog().warn("File encoding has not been set, using platform encoding " + Charset.defaultCharset()
-                + ", i.e. build is platform dependent!" );
+                    + ", i.e. build is platform dependent!");
             charset = Charset.defaultCharset();
-    	} else {
-    		charset = Charset.forName(encoding);
-    	}
+        } else {
+            charset = Charset.forName(encoding);
+        }
         Object parsedContext = createContext(context, charset);
 
         for (TemplateRunConfiguration configuration : templates) {
@@ -134,6 +126,10 @@ public class MustacheMojo extends AbstractMojo {
 
     public void setContext(String context) {
         this.context = context;
+    }
+
+    public void setEncoding(String encoding) {
+        this.encoding = encoding;
     }
 
     public void setTemplates(List<TemplateRunConfiguration> templates) {

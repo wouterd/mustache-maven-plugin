@@ -15,6 +15,10 @@
  */
 package net.wouterdanes;
 
+import org.apache.maven.plugin.MojoFailureException;
+import org.junit.Before;
+import org.junit.Test;
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -22,10 +26,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.maven.plugin.MojoFailureException;
-import org.junit.Before;
-import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
@@ -38,6 +38,7 @@ public class MustacheMojoTest {
     @Before
     public void setUp() throws Exception {
         mojo = new MustacheMojo();
+        mojo.setEncoding("UTF-8");
     }
 
     @Test
