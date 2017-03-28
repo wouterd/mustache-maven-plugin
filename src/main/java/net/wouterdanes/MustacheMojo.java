@@ -36,7 +36,7 @@ import java.util.List;
 @Mojo(name = "mustache")
 public class MustacheMojo extends AbstractMojo {
 
-    public static final String FILE_PREFIX = "file:";
+    private static final String FILE_PREFIX = "file:";
 
     @Parameter(required = true)
     private List<TemplateRunConfiguration> templates;
@@ -78,7 +78,9 @@ public class MustacheMojo extends AbstractMojo {
         Mustache mustache = createTemplate(configuration.getTemplateFile(), charset);
         File outputFile = new File(configuration.getOutputPath());
         File parent = outputFile.getParentFile();
-        parent.mkdirs();
+        if (!parent.exists() || parent.mkdirs()) {
+            throw new MojoFailureException("Output directory cannot be created.");
+        }
         try (Writer writer = new OutputStreamWriter(new FileOutputStream(outputFile), charset)) {
             mustache.execute(writer, templateContext);
         } catch (IOException e) {
