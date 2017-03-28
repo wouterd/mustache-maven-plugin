@@ -59,3 +59,7 @@ The `<encoding>` element specifies the encoding for the input and output files. 
             </templates>
         </configuration>
     </plugin>
+
+## Property Interpolation
+You can include maven properties into your context by using the maven property syntax like this: `${propertyName}`.
+All project properties can be referenced.
