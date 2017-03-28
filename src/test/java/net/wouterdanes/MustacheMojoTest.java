@@ -15,7 +15,9 @@
  */
 package net.wouterdanes;
 
+import org.apache.maven.model.Model;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.project.MavenProject;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -26,12 +28,13 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 
 public class MustacheMojoTest {
 
-    public static final String TEST_TEMPLATE = "test-template.mustache";
+    private static final String TEST_TEMPLATE = "test-template.mustache";
 
     private MustacheMojo mojo;
 
@@ -126,6 +129,27 @@ public class MustacheMojoTest {
 
         checkOutput(firstOutput);
         checkOutput(secondOutput);
+    }
+
+
+    @Test
+    public void testThatProjectPropertiesCanBeInterpolatedInContext() throws Exception {
+        Properties props = new Properties();
+        props.setProperty("text", "Hello test");
+        Model model = new Model();
+        model.setProperties(props);
+        MavenProject project = new MavenProject(model);
+
+        mojo.setContext("---\ntext: ${text}");
+        mojo.setProject(project);
+
+        String outputPath = createTempFile();
+
+        mojo.setTemplates(createTemplateRunConfigurations(null, outputPath));
+
+        mojo.execute();
+
+        checkOutput(outputPath);
     }
 
     private static String createTempFile() throws IOException {

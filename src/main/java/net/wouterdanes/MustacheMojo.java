@@ -23,12 +23,19 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.StringUtils;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * The entry class for the maven plugin
@@ -37,6 +44,7 @@ import java.util.List;
 public class MustacheMojo extends AbstractMojo {
 
     private static final String FILE_PREFIX = "file:";
+    private static final Pattern PROPERTY_PATTERN = Pattern.compile("\\$\\{([^}]+)}");
 
     @Parameter(required = true)
     private List<TemplateRunConfiguration> templates;
@@ -46,6 +54,9 @@ public class MustacheMojo extends AbstractMojo {
 
     @Parameter(defaultValue = "${project.build.sourceEncoding}")
     private String encoding;
+
+    @Parameter(defaultValue = "${project}", readonly = true)
+    private MavenProject project;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -90,22 +101,42 @@ public class MustacheMojo extends AbstractMojo {
         }
     }
 
-    private static Object createContext(String contextConfiguration, Charset charset) throws MojoFailureException {
+    private Object createContext(String contextConfiguration, Charset charset) throws MojoFailureException {
         if (contextConfiguration == null) {
             return null;
         }
 
         Yaml yaml = new Yaml();
 
+        String contextSource = obtainContextSource(contextConfiguration, charset);
+        Matcher matcher = PROPERTY_PATTERN.matcher(contextSource);
+        Set<String> props = new LinkedHashSet<>(10);
+        while (matcher.find()) {
+            props.add(matcher.group(1));
+        }
+
+        for (String prop : props) {
+            if (project.getProperties().containsKey(prop)) {
+                contextSource = contextSource.replace(String.format("${%s}", prop), project.getProperties().getProperty(prop));
+            } else {
+                getLog().warn(String.format("Property '%s' referenced in context, but doesn't exist in Maven Project...", prop));
+            }
+        }
+
+        return yaml.load(contextSource);
+    }
+
+    private static String obtainContextSource(String contextConfiguration, Charset charset) throws MojoFailureException {
         if (contextConfiguration.startsWith("---\n")) {
-            return yaml.load(contextConfiguration);
+            return contextConfiguration;
         }
 
         String trimmedContext = contextConfiguration.trim();
         if (trimmedContext.startsWith(FILE_PREFIX)) {
             String filename = trimmedContext.substring(FILE_PREFIX.length());
-            try (Reader reader = new InputStreamReader(new FileInputStream(filename), charset)) {
-                return yaml.load(reader);
+            try {
+                byte[] bytes = Files.readAllBytes(Paths.get(filename));
+                return new String(bytes, charset);
             } catch (IOException e) {
                 throw new MojoFailureException(e, "Cannot load yaml from file", "Cannot load yaml from file");
             }
@@ -136,5 +167,9 @@ public class MustacheMojo extends AbstractMojo {
 
     public void setTemplates(List<TemplateRunConfiguration> templates) {
         this.templates = templates;
+    }
+
+    public void setProject(MavenProject project) {
+        this.project = project;
     }
 }
