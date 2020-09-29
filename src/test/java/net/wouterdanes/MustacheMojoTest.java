@@ -190,6 +190,6 @@ public class MustacheMojoTest {
 
         String output = new String(fileContents);
 
-        assertEquals("Output not the expected output", "Hello test", output);
+        assertEquals("Output not the expected output", "Hello test\ninclude: Hello test", output);
     }
 }
