@@ -89,7 +89,7 @@ public class MustacheMojo extends AbstractMojo {
         Mustache mustache = createTemplate(configuration.getTemplateFile(), charset);
         File outputFile = new File(configuration.getOutputPath());
         File parent = outputFile.getParentFile();
-        if (!parent.exists() || parent.mkdirs()) {
+        if (!parent.exists() && parent.mkdirs()) {
             throw new MojoFailureException("Output directory cannot be created.");
         }
         try (Writer writer = new OutputStreamWriter(new FileOutputStream(outputFile), charset)) {
@@ -147,7 +147,7 @@ public class MustacheMojo extends AbstractMojo {
     }
 
     private static Mustache createTemplate(File template, Charset charset) throws MojoFailureException {
-        DefaultMustacheFactory mf = new DefaultMustacheFactory();
+        DefaultMustacheFactory mf = new DefaultMustacheFactory(template.getParentFile());
         Mustache mustache;
         try (Reader reader = new InputStreamReader(new FileInputStream(template), charset)) {
             mustache = mf.compile(reader, "template");
